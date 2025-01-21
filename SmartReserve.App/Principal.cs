@@ -16,18 +16,16 @@ namespace SmartReserve.App
         {
             InitializeComponent();
 
-            // Configuração do MaterialSkinManager
             materialSkinManager = MaterialSkinManager.Instance;
             materialSkinManager.AddFormToManage(this);
             materialSkinManager.Theme = MaterialSkinManager.Themes.LIGHT;
 
-            // Definir a cor do título para vermelho
             materialSkinManager.ColorScheme = new MaterialColorScheme(
-                MaterialPrimary.Red500,   // Cor primária
-                MaterialPrimary.Red700,   // Cor primária mais escura
-                MaterialPrimary.Red200,   // Cor primária mais clara
-                MaterialAccent.Red100,    // Cor de destaque
-                MaterialTextShade.LIGHT   // Texto claro
+                MaterialPrimary.Red500,   
+                MaterialPrimary.Red700,   
+                MaterialPrimary.Red200,   
+                MaterialAccent.Red100,    
+                MaterialTextShade.LIGHT   
             );
         }
 

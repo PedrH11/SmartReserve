@@ -74,7 +74,7 @@ namespace SmartReserve.App.Cadastros
                         MessageBox.Show("A aula selecionada não foi encontrada.", @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
-                    
+
                     if (!aula.StatusAula)
                     {
                         MessageBox.Show($"A aula \"{aula.Descricao}\" está desativada e não pode receber reservas.",
@@ -111,7 +111,6 @@ namespace SmartReserve.App.Cadastros
                         return;
                     }
 
-                    
                     if (!aluno.StatusAluno)
                     {
                         MessageBox.Show($"O aluno \"{aluno.Nome}\" está inativo e não pode ser associado à reserva.",
@@ -119,7 +118,6 @@ namespace SmartReserve.App.Cadastros
                         return;
                     }
 
-                  
                     if (!isAlteracao)
                     {
                         var reservaExistente = _reservasService.Get<Reservas>()
@@ -134,7 +132,6 @@ namespace SmartReserve.App.Cadastros
                     }
                 }
 
-                
                 if (isAlteracao)
                 {
                     if (int.TryParse(txtId.Text, out var id))
