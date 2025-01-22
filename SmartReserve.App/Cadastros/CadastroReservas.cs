@@ -31,6 +31,7 @@ namespace SmartReserve.App.Cadastros
             _alunosService = alunosService;
             InitializeComponent();
             CarregarCombo();
+            RemoverReservasDeAulasInativas();
         }
 
         private void CarregarCombo()
@@ -84,7 +85,9 @@ namespace SmartReserve.App.Cadastros
 
                     if (!isAlteracao)
                     {
-                        var reservasExistentes = _reservasService.Get<Reservas>().Count(r => r.Aulas.Id == idAulas);
+                        var reservasExistentes = _reservasService
+                            .Get<Reservas>()
+                            .Count(r => r.Aulas.Id == idAulas && r.StatusReserva);
 
                         if (reservasExistentes >= aula.Capacidade)
                         {
@@ -100,6 +103,7 @@ namespace SmartReserve.App.Cadastros
                             return;
                         }
                     }
+
                 }
 
                 if (int.TryParse(cbxAlunos.SelectedValue.ToString(), out var idAlunos))
@@ -190,6 +194,22 @@ namespace SmartReserve.App.Cadastros
             cbxAulas.SelectedValue = linha?.Cells["IdAulas"].Value;
             cbxAlunos.SelectedValue = linha?.Cells["IdAlunos"].Value;
 
+        }
+
+        private void RemoverReservasDeAulasInativas() //reservas com alunos inativos também
+        {
+            var reservas = _reservasService.Get<Reservas>(new List<string> { "Aulas", "Alunos" }).ToList();
+
+            foreach (var reserva in reservas)
+            {
+                bool aulaInativa = reserva.Aulas != null && !reserva.Aulas.StatusAula;
+                bool alunoInativo = reserva.Alunos != null && !reserva.Alunos.StatusAluno;
+
+                if (aulaInativa || alunoInativo)
+                {
+                    _reservasService.Delete(reserva.Id);
+                }
+            }
         }
     }
 }
