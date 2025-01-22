@@ -5,12 +5,7 @@ using SmartReserve.Domain.Entities;
 using SmartReserve.Services.Validators;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SmartReserve.App.Cadastros
@@ -22,6 +17,7 @@ namespace SmartReserve.App.Cadastros
         private readonly IBaseService<Aulas> _aulasService;
 
         private List<ReservasModel>? _reservas;
+
         public CadastroReservas(IBaseService<Reservas> reservasService,
                                 IBaseService<Alunos> alunosService,
                                 IBaseService<Aulas> aulasService)
@@ -63,66 +59,69 @@ namespace SmartReserve.App.Cadastros
             reservas.StatusReserva = btnAtivo.Checked;
         }
 
-        protected override void Salvar()
+        private bool ValidarAula(Reservas reservas)
         {
-            try
+            if (int.TryParse(cbxAulas.SelectedValue.ToString(), out var idAulas))
             {
-                if (int.TryParse(cbxAulas.SelectedValue.ToString(), out var idAulas))
+                var aula = _aulasService.GetById<Aulas>(idAulas);
+                if (aula == null)
                 {
-                    var aula = _aulasService.GetById<Aulas>(idAulas);
-                    if (aula == null)
-                    {
-                        MessageBox.Show("A aula selecionada não foi encontrada.", @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
-                    if (!aula.StatusAula)
-                    {
-                        MessageBox.Show($"A aula \"{aula.Descricao}\" está desativada e não pode receber reservas.",
-                                        @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-
-                    if (!isAlteracao)
-                    {
-                        var reservasExistentes = _reservasService
-                            .Get<Reservas>()
-                            .Count(r => r.Aulas.Id == idAulas && r.StatusReserva);
-
-                        if (reservasExistentes >= aula.Capacidade)
-                        {
-                            MessageBox.Show($"A capacidade da aula \"{aula.Descricao}\" foi atingida ({aula.Capacidade} alunos).",
-                                            @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                            return;
-                        }
-
-                        if (aula.Horario < DateTime.Now)
-                        {
-                            MessageBox.Show($"O horário da aula \"{aula.Descricao}\" já passou. Não é possível realizar mais reservas.",
-                                            @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                            return;
-                        }
-                    }
-
+                    MessageBox.Show("A aula selecionada não foi encontrada.", @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
                 }
 
-                if (int.TryParse(cbxAlunos.SelectedValue.ToString(), out var idAlunos))
+                if (!aula.StatusAula)
                 {
-                    var aluno = _alunosService.GetById<Alunos>(idAlunos);
-                    if (aluno == null)
-                    {
-                        MessageBox.Show("O aluno selecionado não foi encontrado.", @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
+                    MessageBox.Show($"A aula \"{aula.Descricao}\" está desativada e não pode receber reservas.",
+                                    @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
 
-                    if (!aluno.StatusAluno)
+                if (!isAlteracao)
+                {
+                    var reservasExistentes = _reservasService
+                        .Get<Reservas>()
+                        .Count(r => r.Aulas.Id == idAulas && r.StatusReserva);
+
+                    if (reservasExistentes >= aula.Capacidade)
                     {
-                        MessageBox.Show($"O aluno \"{aluno.Nome}\" está inativo e não pode ser associado à reserva.",
+                        MessageBox.Show($"A capacidade da aula \"{aula.Descricao}\" foi atingida ({aula.Capacidade} alunos).",
                                         @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
+                        return false;
                     }
 
-                    if (!isAlteracao)
+                    if (aula.Horario < DateTime.Now)
+                    {
+                        MessageBox.Show($"O horário da aula \"{aula.Descricao}\" já passou. Não é possível realizar mais reservas.",
+                                        @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private bool ValidarAluno()
+        {
+            if (int.TryParse(cbxAlunos.SelectedValue.ToString(), out var idAlunos))
+            {
+                var aluno = _alunosService.GetById<Alunos>(idAlunos);
+                if (aluno == null)
+                {
+                    MessageBox.Show("O aluno selecionado não foi encontrado.", @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+                if (!aluno.StatusAluno)
+                {
+                    MessageBox.Show($"O aluno \"{aluno.Nome}\" está inativo e não pode ser associado à reserva.",
+                                    @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                if (!isAlteracao)
+                {
+                    if (int.TryParse(cbxAulas.SelectedValue.ToString(), out var idAulas))
                     {
                         var reservaExistente = _reservasService.Get<Reservas>()
                             .Any(r => r.Aulas.Id == idAulas && r.Alunos.Id == idAlunos);
@@ -131,10 +130,20 @@ namespace SmartReserve.App.Cadastros
                         {
                             MessageBox.Show($"O aluno \"{aluno.Nome}\" já fez uma reserva para a aula \"{_aulasService.GetById<Aulas>(idAulas)?.Descricao}\".",
                                             @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                            return;
+                            return false;
                         }
                     }
                 }
+            }
+            return true;
+        }
+
+
+        protected override void Salvar()
+        {
+            try
+            {
+                if (!ValidarAula(new Reservas()) || !ValidarAluno()) return;
 
                 if (isAlteracao)
                 {
@@ -159,8 +168,6 @@ namespace SmartReserve.App.Cadastros
                 MessageBox.Show(ex.Message, @"SmartReserve", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-
 
         protected override void Deletar(int id)
         {
@@ -193,7 +200,6 @@ namespace SmartReserve.App.Cadastros
             btnAtivo.Checked = (bool)(linha?.Cells["StatusReserva"].Value ?? false);
             cbxAulas.SelectedValue = linha?.Cells["IdAulas"].Value;
             cbxAlunos.SelectedValue = linha?.Cells["IdAlunos"].Value;
-
         }
 
         private void RemoverReservasDeAulasInativas() //reservas com alunos inativos também
